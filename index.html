@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ABC con Oliver - ¡A Jugar!</title>
+    <!-- Cargamos Tailwind pero incluimos fallbacks por si no hay internet -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* CSS DE EMERGENCIA: Si Tailwind falla, esto mantiene el juego funcional */
+        body {
+            font-family: 'Quicksand', 'Arial', sans-serif;
+            background-color: #fdfcf0;
+            margin: 0;
+            padding: 15px;
+            touch-action: manipulation;
+        }
+        #alphabet-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        @media (min-width: 600px) { #alphabet-grid { grid-template-columns: repeat(4, 1fr); } }
+        
+        .letter-card {
+            background: white;
+            border-radius: 25px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-bottom: 8px solid #ddd;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .letter-card:active { transform: scale(0.95); }
+        .letter-card span { display: block; }
+        .title-font { font-family: 'Fredoka One', cursive; font-size: 3.5rem; }
+
+        /* Estilos adicionales */
+        .bg-pattern {
+            background-image: radial-gradient(#ffe4e6 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+        .float-animation { animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+        }
+    </style>
+</head>
+<body class="bg-pattern min-h-screen">
+
+    <!-- Selector de Modo -->
+    <div class="max-w-xl mx-auto mb-6 flex bg-white rounded-full p-1 shadow-lg border-2 border-blue-100 overflow-hidden">
+        <button id="btn-learn" onclick="setMode('learn')" class="flex-1 py-3 px-1 rounded-full font-bold text-xs md:text-lg transition-all bg-blue-500 text-white">
+            📖 Aprender
+        </button>
+        <button id="btn-sound" onclick="setMode('sound')" class="flex-1 py-3 px-1 rounded-full font-bold text-xs md:text-lg transition-all text-gray-500">
+            🔊 Sonidos
+        </button>
+        <button id="btn-play" onclick="setMode('play')" class="flex-1 py-3 px-1 rounded-full font-bold text-xs md:text-lg transition-all text-gray-500">
+            🎮 Jugar
+        </button>
+    </div>
+
+    <header class="text-center mb-6">
+        <h1 id="main-title" class="title-font text-rose-500 mb-1">¡Hola, Oliver!</h1>
+        <p id="sub-title" class="text-lg text-blue-400 font-bold bg-white px-4 py-2 rounded-full border-2 border-blue-50 border-inline shadow-sm">
+            Toca una letra para escuchar
+        </p>
+    </header>
+
+    <div id="alphabet-grid">
+        <!-- Se genera inmediatamente con JS -->
+    </div>
+
+    <div id="overlay" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onclick="closeOverlay()">
+        <div class="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl border-[10px]" id="modal-content">
+            <span id="big-letter" class="title-font text-9xl block mb-2 leading-none">A</span>
+            <span id="big-emoji" class="text-8xl block mb-6 float-animation">🍎</span>
+            <h2 id="big-word" class="text-4xl font-bold text-gray-700 capitalize mb-4">Manzana</h2>
+            <div class="text-4xl">🌟🌟🌟</div>
+        </div>
+    </div>
+
+    <script>
+        const alphabet = [
+            { l: 'A', w: 'Avión', e: '✈️', c: '#FF595E' },
+            { l: 'B', w: 'Barco', e: '🚢', c: '#FF924C' },
+            { l: 'C', w: 'Casa', e: '🏠', c: '#FFCA3A' },
+            { l: 'D', w: 'Dino', e: '🦖', c: '#8AC926' },
+            { l: 'E', w: 'Elefante', e: '🐘', c: '#1982C4' },
+            { l: 'F', w: 'Flor', e: '🌸', c: '#6A4C93' },
+            { l: 'G', w: 'Gato', e: '🐱', c: '#FF595E' },
+            { l: 'H', w: 'Helado', e: '🍦', c: '#FF924C' },
+            { l: 'I', w: 'Iguana', e: '🦎', c: '#FFCA3A' },
+            { l: 'J', w: 'Jirafa', e: '🦒', c: '#8AC926' },
+            { l: 'K', w: 'Koala', e: '🐨', c: '#1982C4' },
+            { l: 'L', w: 'León', e: '🦁', c: '#6A4C93' },
+            { l: 'M', w: 'Moni', e: '🐒', c: '#FF595E' },
+            { l: 'N', w: 'Nube', e: '☁️', c: '#FF924C' },
+            { l: 'Ñ', w: 'Niño', e: '👦', c: '#FFCA3A' },
+            { l: 'O', w: 'Oso', e: '🐻', c: '#8AC926' },
+            { l: 'P', w: 'Perro', e: '🐶', c: '#1982C4' },
+            { l: 'Q', w: 'Queso', e: '🧀', c: '#6A4C93' },
+            { l: 'R', w: 'Rana', e: '🐸', c: '#FF595E' },
+            { l: 'S', w: 'Sol', e: '☀️', c: '#FF924C' },
+            { l: 'T', w: 'Tren', e: '🚂', c: '#FFCA3A' },
+            { l: 'U', w: 'Uvas', e: '🍇', c: '#8AC926' },
+            { l: 'V', w: 'Vaca', e: '🐮', c: '#1982C4' },
+            { l: 'W', w: 'Waffle', e: '🧇', c: '#6A4C93' },
+            { l: 'X', w: 'Xilófono', e: '🎹', c: '#FF595E' },
+            { l: 'Y', w: 'Yoyo', e: '🪀', c: '#FF924C' },
+            { l: 'Z', w: 'Zebra', e: '🦓', c: '#FFCA3A' }
+        ];
+
+        let currentMode = 'learn';
+        let targetLetter = null;
+        const synth = window.speechSynthesis;
+        let selectedVoice = null;
+
+        function loadVoices() {
+            const voices = synth.getVoices();
+            const latamCodes = ['es-MX', 'es-US', 'es-AR', 'es-CO', 'es-CL'];
+            selectedVoice = voices.find(v => v.lang.includes('MX') || v.name.includes('Google')) || 
+                            voices.find(v => latamCodes.includes(v.lang)) ||
+                            voices.find(v => v.lang.startsWith('es'));
+        }
+
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        function speak(text, slow = false) {
+            synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.lang = 'es-MX';
+            utterance.rate = slow ? 0.7 : 0.9;
+            utterance.pitch = 1.2;
+            synth.speak(utterance);
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            const subTitle = document.getElementById('sub-title');
+            
+            // Actualizar botones
+            document.querySelectorAll('button').forEach(b => {
+                b.classList.remove('bg-blue-500', 'bg-purple-500', 'bg-green-500', 'text-white');
+                b.classList.add('text-gray-500');
+            });
+
+            const btn = document.getElementById('btn-' + (mode === 'sound' ? 'sound' : mode));
+            if(mode === 'learn') { btn.classList.add('bg-blue-500', 'text-white'); subTitle.innerText = "Toca para ver y escuchar"; }
+            if(mode === 'sound') { btn.classList.add('bg-purple-500', 'text-white'); subTitle.innerText = "Escucha cómo suenan"; }
+            if(mode === 'play') { btn.classList.add('bg-green-500', 'text-white'); startNewChallenge(); }
+        }
+
+        function startNewChallenge() {
+            targetLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+            speak(`Oliver, ¿dónde está la letra ${targetLetter.l}?`);
+            document.getElementById('sub-title').innerText = `Busca la letra: ${targetLetter.l}`;
+        }
+
+        function createGrid() {
+            const grid = document.getElementById('alphabet-grid');
+            grid.innerHTML = '';
+            alphabet.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'letter-card';
+                card.style.borderColor = item.c;
+                card.innerHTML = `
+                    <span class="title-font" style="color: ${item.c}">${item.l}</span>
+                    <span style="font-size: 1.8rem; margin-top: 5px;">${item.e}</span>
+                `;
+                card.onclick = (e) => handleCardClick(item, e);
+                grid.appendChild(card);
+            });
+        }
+
+        function handleCardClick(item, event) {
+            if (currentMode === 'learn') {
+                showLetterInfo(item);
+            } else if (currentMode === 'sound') {
+                speak(item.l);
+                const card = event.currentTarget;
+                card.style.transform = "scale(1.1) rotate(5deg)";
+                setTimeout(() => card.style.transform = "scale(1)", 200);
+            } else {
+                if (item.l === targetLetter.l) {
+                    showSuccess(item);
+                } else {
+                    speak(`¡Casi! Esa es la ${item.l}. ¿Dónde está la ${targetLetter.l}?`, true);
+                }
+            }
+        }
+
+        function showLetterInfo(item) {
+            const overlay = document.getElementById('overlay');
+            document.getElementById('big-letter').innerText = item.l;
+            document.getElementById('big-letter').style.color = item.c;
+            document.getElementById('big-emoji').innerText = item.e;
+            document.getElementById('big-word').innerText = item.w;
+            document.getElementById('modal-content').style.borderColor = item.c;
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            speak(`${item.l} de ${item.w}`);
+        }
+
+        function showSuccess(item) {
+            showLetterInfo(item);
+            if(typeof confetti === 'function') {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+            setTimeout(() => {
+                speak(`¡Muy bien Oliver! ¡Encontraste la ${item.l}!`);
+                if (currentMode === 'play') {
+                    setTimeout(() => { closeOverlay(); startNewChallenge(); }, 4000);
+                }
+            }, 1500);
+        }
+
+        function closeOverlay() {
+            document.getElementById('overlay').classList.add('hidden');
+            document.getElementById('overlay').classList.remove('flex');
+        }
+
+        // Ejecutar inmediatamente
+        createGrid();
+        loadVoices();
+    </script>
+</body>
+</html>
