@@ -8,7 +8,9 @@
   "icons": [
     {
       "src": "icono.png",
-      "type": "image/png"
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
