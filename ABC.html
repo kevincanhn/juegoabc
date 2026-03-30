@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABC con Oliver - ¡A Jugar!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #fdfcf0;
+            touch-action: manipulation;
+            overflow-x: hidden;
+        }
+        .title-font {
+            font-family: 'Fredoka One', cursive;
+        }
+        .letter-card {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .letter-card:active {
+            transform: scale(0.9);
+        }
+        .bg-pattern {
+            background-image: radial-gradient(#ffe4e6 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+        .float-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+        }
+        .mode-active {
+            box-shadow: 0 0 0 4px #3b82f6;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="bg-pattern min-h-screen p-4">
+
+    <!-- Selector de Modo -->
+    <div class="max-w-xl mx-auto mb-6 flex bg-white rounded-full p-2 shadow-lg border-2 border-blue-100">
+        <button id="btn-learn" onclick="setMode('learn')" class="flex-1 py-3 px-2 rounded-full font-bold text-sm md:text-lg transition-all bg-blue-500 text-white shadow-inner">
+            📖 Aprender
+        </button>
+        <button id="btn-sound" onclick="setMode('sound')" class="flex-1 py-3 px-2 rounded-full font-bold text-sm md:text-lg transition-all text-gray-500">
+            🔊 Sonidos
+        </button>
+        <button id="btn-play" onclick="setMode('play')" class="flex-1 py-3 px-2 rounded-full font-bold text-sm md:text-lg transition-all text-gray-500">
+            🎮 Jugar
+        </button>
+    </div>
+
+    <!-- Encabezado Dinámico -->
+    <header class="text-center mb-6">
+        <h1 id="main-title" class="title-font text-4xl md:text-6xl text-rose-500 drop-shadow-sm mb-2">
+            ¡Hola, Oliver!
+        </h1>
+        <p id="sub-title" class="text-lg md:text-xl text-blue-400 font-bold bg-blue-50 inline-block px-6 py-2 rounded-full border-2 border-blue-100">
+            Toca una letra para escuchar
+        </p>
+    </header>
+
+    <!-- Rejilla del Alfabeto -->
+    <div id="alphabet-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 max-w-6xl mx-auto pb-20">
+        <!-- Generado por JS -->
+    </div>
+
+    <!-- Modal de Éxito / Info -->
+    <div id="overlay" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onclick="closeOverlay()">
+        <div class="bg-white rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border-[12px]" id="modal-content">
+            <span id="big-letter" class="title-font text-9xl block mb-2 leading-none">A</span>
+            <span id="big-emoji" class="text-8xl block mb-6 float-animation">🍎</span>
+            <h2 id="big-word" class="text-4xl font-bold text-gray-700 capitalize mb-6">Manzana</h2>
+            <div class="text-6xl">🌟</div>
+        </div>
+    </div>
+
+    <script>
+        const alphabet = [
+            { l: 'A', w: 'Avión', e: '✈️', c: '#FF595E' },
+            { l: 'B', w: 'Barco', e: '🚢', c: '#FF924C' },
+            { l: 'C', w: 'Casa', e: '🏠', c: '#FFCA3A' },
+            { l: 'D', w: 'Dinosaurio', e: '🦖', c: '#8AC926' },
+            { l: 'E', w: 'Elefante', e: '🐘', c: '#1982C4' },
+            { l: 'F', w: 'Flor', e: '🌸', c: '#6A4C93' },
+            { l: 'G', w: 'Gato', e: '🐱', c: '#FF595E' },
+            { l: 'H', w: 'Helado', e: '🍦', c: '#FF924C' },
+            { l: 'I', w: 'Iguana', e: '🦎', c: '#FFCA3A' },
+            { l: 'J', w: 'Jirafa', e: '🦒', c: '#8AC926' },
+            { l: 'K', w: 'Koala', e: '🐨', c: '#1982C4' },
+            { l: 'L', w: 'León', e: '🦁', c: '#6A4C93' },
+            { l: 'M', w: 'Manzana', e: '🍎', c: '#FF595E' },
+            { l: 'N', w: 'Nube', e: '☁️', c: '#FF924C' },
+            { l: 'Ñ', w: 'Niño', e: '👦', c: '#FFCA3A' },
+            { l: 'O', w: 'Oso', e: '🐻', c: '#8AC926' },
+            { l: 'P', w: 'Perro', e: '🐶', c: '#1982C4' },
+            { l: 'Q', w: 'Queso', e: '🧀', c: '#6A4C93' },
+            { l: 'R', w: 'Rana', e: '🐸', c: '#FF595E' },
+            { l: 'S', w: 'Sol', e: '☀️', c: '#FF924C' },
+            { l: 'T', w: 'Tren', e: '🚂', c: '#FFCA3A' },
+            { l: 'U', w: 'Uvas', e: '🍇', c: '#8AC926' },
+            { l: 'V', w: 'Vaca', e: '🐮', c: '#1982C4' },
+            { l: 'W', w: 'Waffle', e: '🧇', c: '#6A4C93' },
+            { l: 'X', w: 'Xilófono', e: '🎹', c: '#FF595E' },
+            { l: 'Y', w: 'Yoyo', e: '🪀', c: '#FF924C' },
+            { l: 'Z', w: 'Zebra', e: '🦓', c: '#FFCA3A' }
+        ];
+
+        let currentMode = 'learn';
+        let targetLetter = null;
+        const synth = window.speechSynthesis;
+        let selectedVoice = null;
+
+        function loadVoices() {
+            const voices = synth.getVoices();
+            const latamCodes = ['es-MX', 'es-US', 'es-AR', 'es-CO', 'es-CL'];
+
+            selectedVoice = voices.find(v => v.name.includes('Google') && latamCodes.includes(v.lang)) || 
+                            voices.find(v => v.name.includes('Helena') && latamCodes.includes(v.lang)) ||
+                            voices.find(v => latamCodes.includes(v.lang)) ||
+                            voices.find(v => v.lang.startsWith('es'));
+        }
+
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        function speak(text, slow = false) {
+            synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.lang = 'es-MX';
+            utterance.rate = slow ? 0.75 : 0.9;
+            utterance.pitch = 1.25;
+            synth.speak(utterance);
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            const btnLearn = document.getElementById('btn-learn');
+            const btnSound = document.getElementById('btn-sound');
+            const btnPlay = document.getElementById('btn-play');
+            const subTitle = document.getElementById('sub-title');
+
+            // Resetear estilos de botones
+            [btnLearn, btnSound, btnPlay].forEach(btn => {
+                btn.className = "flex-1 py-3 px-2 rounded-full font-bold text-sm md:text-lg transition-all text-gray-500 hover:bg-gray-100";
+            });
+
+            if (mode === 'learn') {
+                btnLearn.className = "flex-1 py-3 px-2 rounded-full font-bold text-sm md:text-lg bg-blue-500 text-white shadow-lg scale-105 transition-all";
+                subTitle.innerText = "Toca para ver y escuchar";
+                speak("¡Vamos a aprender el abecedario, Oliver!");
+            } else if (mode === 'sound') {
+                btnSound.className = "flex-1 py-3 px-2 rounded-full font-bold text-sm md:text-lg bg-purple-500 text-white shadow-lg scale-105 transition-all";
+                subTitle.innerText = "Escucha el sonido de las letras";
+                speak("¡Escuchemos cómo suenan las letras!");
+            } else {
+                btnPlay.className = "flex-1 py-3 px-2 rounded-full font-bold text-sm md:text-lg bg-green-500 text-white shadow-lg scale-105 transition-all";
+                subTitle.innerText = "¡Buscamos una letra!";
+                startNewChallenge();
+            }
+        }
+
+        function startNewChallenge() {
+            targetLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+            const phrases = [
+                `Oliver, ¿dónde está la letra ${targetLetter.l}?`,
+                `¿Puedes encontrar la ${targetLetter.l} de ${targetLetter.w}?`,
+                `Busquemos la letra ${targetLetter.l}`
+            ];
+            speak(phrases[Math.floor(Math.random() * phrases.length)]);
+            document.getElementById('sub-title').innerText = `Busca la letra: ${targetLetter.l}`;
+        }
+
+        function createGrid() {
+            const grid = document.getElementById('alphabet-grid');
+            grid.innerHTML = '';
+            alphabet.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'letter-card bg-white rounded-[2rem] p-6 shadow-md flex flex-col items-center justify-center border-b-[8px] border-gray-200 hover:shadow-xl';
+                card.style.borderColor = item.c;
+                card.innerHTML = `
+                    <span class="title-font text-6xl pointer-events-none" style="color: ${item.c}">${item.l}</span>
+                    <span class="text-3xl mt-2 pointer-events-none">${item.e}</span>
+                `;
+                card.onclick = (e) => handleCardClick(item, e);
+                grid.appendChild(card);
+            });
+        }
+
+        function handleCardClick(item, event) {
+            if (currentMode === 'learn') {
+                showLetterInfo(item);
+            } else if (currentMode === 'sound') {
+                // Solo sonido, sin modal para que Oliver pueda tocar muchas rápido
+                speak(item.l);
+                // Pequeña animación visual en la tarjeta
+                const card = event.currentTarget;
+                card.classList.add('scale-110', 'rotate-3');
+                setTimeout(() => card.classList.remove('scale-110', 'rotate-3'), 200);
+            } else {
+                if (item.l === targetLetter.l) {
+                    showSuccess(item);
+                } else {
+                    speak(`¡Casi! Esa es la ${item.l}. ¿Dónde está la ${targetLetter.l}?`, true);
+                    const card = event.currentTarget;
+                    card.classList.add('animate-bounce');
+                    setTimeout(() => card.classList.remove('animate-bounce'), 500);
+                }
+            }
+        }
+
+        function showLetterInfo(item) {
+            const overlay = document.getElementById('overlay');
+            const modalContent = document.getElementById('modal-content');
+            
+            document.getElementById('big-letter').innerText = item.l;
+            document.getElementById('big-letter').style.color = item.c;
+            document.getElementById('big-emoji').innerText = item.e;
+            document.getElementById('big-word').innerText = item.w;
+            modalContent.style.borderColor = item.c;
+
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            
+            speak(`${item.l} de ${item.w}`);
+        }
+
+        function showSuccess(item) {
+            showLetterInfo(item);
+            confetti({
+                particleCount: 150,
+                spread: 100,
+                origin: { y: 0.6 },
+                colors: [item.c, '#ffffff', '#ffeb3b']
+            });
+            
+            setTimeout(() => {
+                speak(`¡Muy bien Oliver! ¡Encontraste la letra ${item.l}!`);
+            }, 2000);
+
+            setTimeout(() => {
+                if (currentMode === 'play') {
+                    closeOverlay();
+                    startNewChallenge();
+                }
+            }, 8000);
+        }
+
+        function closeOverlay() {
+            const overlay = document.getElementById('overlay');
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            if (currentMode === 'learn') synth.cancel();
+        }
+
+        window.onload = () => {
+            loadVoices();
+            createGrid();
+        };
+    </script>
+</body>
+</html>
