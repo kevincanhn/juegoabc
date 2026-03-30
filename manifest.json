@@ -1,0 +1,14 @@
+{
+  "name": "ABC de Oliver",
+  "short_name": "ABC de Oliver",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "icono.png",
+      "type": "image/png"
+    }
+  ]
+}
